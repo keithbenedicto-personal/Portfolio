@@ -1,4 +1,3 @@
-# Code / Scripts Portfolio
 
 # [Horizon Online Channel Training Environment](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Horizon%20Online%20Channel%20Training%20Environment)
 
