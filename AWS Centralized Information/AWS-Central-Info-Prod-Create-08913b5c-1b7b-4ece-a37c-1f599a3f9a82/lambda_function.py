@@ -1,359 +1,277 @@
-#Created By Keith Benedicto, COC JP Q4 2019
-import sys
+# Created By Keith Benedicto, COC JP Q4 2019
+# Updated by AWS Central Information Team, Lead Joel Nidoy
+
+
 import logging
 import rds_config
 import pymysql
-import json
-import pyipcalc
+from functools import wraps
+import ipaddress
+import math
 
-# rds settings
-rds_host  = "aws-centralized-infodb.c0mpehgheiga.us-west-2.rds.amazonaws.com"
-name = rds_config.db_username
-password = rds_config.db_password
-db_name = rds_config.db_name
+# from jira import JIRA
+
+
 # logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-# connect using creds from rds_config.py
-try:
-    conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
-except:
-    logger.info("ERROR: Unexpected error: Could not connect to MySql instance.")
-    sys.exit()
-logger.error("SUCCESS: Connection to RDS mysql instance succeeded")
-# Create Region Dictionary based on the DB Tables
-Region_Table_dict = {
-        "us-east-2" : 'AWS-N.Virginia/Ohio',
-        "us-east-1" : 'AWS-N.Virginia/Ohio',
-        "us-west-1" : 'AWS-Oregon/N.California',
-        "us-west-2" : 'AWS-Oregon/N.California',
-        "ap-northeast-1" : 'AWS-Tokyo',
-        "eu-central-1" : 'AWS-Frankfurt/Ireland',
-        "eu-west-1" : 'AWS-Frankfurt/Ireland'
+
+# Region table and network mapping
+REGIONS_MAPPING = {
+    "us-east-2": {
+        "table_name": "AWS-N.Virginia/Ohio",
+        "network": ["10.107.0.0/16", "10.154.0.0/16"]
+    },
+    "us-east-1": {
+        "table_name": "AWS-N.Virginia/Ohio",
+        "network": ["10.107.0.0/16", "10.154.0.0/16"]
+    },
+    "us-west-1": {
+        "table_name": "AWS-Oregon/N.California",
+        "network": ["10.104.0.0/15", "10.152.0.0/16"]
+    },
+    "us-west-2": {
+        "table_name": "AWS-Oregon/N.California",
+        "network": ["10.106.0.0/16", "10.152.0.0/16"]
+    },
+    "ap-northeast-1": {
+        "table_name": "AWS-Tokyo",
+        "network": ["10.102.0.0/17", "10.153.0.0/16"]
+    },
+    "eu-central-1": {
+        "table_name": "AWS-Frankfurt/Ireland",
+        "network": ["10.102.128.0/17", "10.156.0.0/16"]
+    },
+    "eu-west-1": {
+        "table_name": "AWS-Frankfurt/Ireland",
+        "network": ["10.102.128.0/17", "10.156.0.0/16"]
     }
+}
+
+# Table fields mapping
 Field_Table_dict = {
-        "numIps": "`'Number of IPs'`",
-        "network":"`'Network'`",
-        "netmask":"`'Netmask'`",
-        "cidr":"`'CIDR'`",
-        "IPrange":"`'Network IP Range'`",
-        "broadcastIP":"`'Subnet Broadcast'`",
-        "environment" : "`'Environment'`",          
-        "service" : "`'Service/Purpose'`",
-        "accountID" : "`'AWS Account ID'`",
-        "tunnelIP1": "`'Tunnel IP 1'`",
-        "tunnelIP2": "`'Tunnel IP 2'`",
-        "description": "`'Description'`",
-        "vpnID": "`'VPN ID'`",
-        "vpcID":"`'VPC ID'`",
-        "flowLogID":"`'Flow Log ID'`",
-        "endSchedule":"`'Plan End Schedule'`",
-        "creationDate":"`'Date of Creation'`",
-        "contactPerson":"`'Contact Person'`",
-        "ticket":"`'Ticket'`",
-        "tunnelID": "`'Tunnel ID'`",
-        "tgw":"`'TGW Connection'`"
-    }
-#LISTS OF REGIONS AND HOSTS WITH THEIR COUNTERPARTS
-regions = ["ap-northeast-1","us-west-1","us-west-2","us-east-1","us-east-2","eu-central-1","eu-west-1"]
-ipx = ['102','106','106','107','107','102','102']
+    "numIps": "Number of IPs",
+    "network": "Network",
+    "netmask": "Netmask",
+    "cidr": "CIDR",
+    "IPrange": "Network IP Range",
+    "broadcastIP": "Subnet Broadcast",
+    "environment": "Environment",
+    "service": "Service/Purpose",
+    "accountID": "AWS Account ID",
+    "tunnelIP1": "Tunnel IP 1",
+    "tunnelIP2": "Tunnel IP 2",
+    "description": "Description",
+    "vpnID": "VPN ID",
+    "vpcID": "VPC ID",
+    "flowLogID": "Flow Log ID",
+    "endSchedule": "Plan End Schedule",
+    "creationDate": "Date of Creation",
+    "contactPerson": "Contact Person",
+    "ticket": "Ticket",
+    "tunnelID": "Tunnel ID",
+    "tgw": "TGW Connection"
+}
 
-#FOR SUBNET
-subn = ['30','29','28','27','26','25','24','23','22','21','20','19']
-hosts = ['4','8','16','32','64','128','256','512','1024','2048','4096','8192']
 
-def special_alloc(region,ip_octet,z,y):
-    inside_network = '10.' + '%s.' %str(ip_octet) + '%s.'%z + '%s' %y
-    inside_cidr = inside_network + '/24'
-    special_net = pyipcalc.IPNetwork(inside_cidr)
-    special_range = special_net.first() + ' to ' + special_net.last()
-    with conn.cursor() as cur:
-        query = "INSERT INTO `%s` (`'Number of IPs'`,`'Network'`,`'Netmask'`,`'CIDR'`,`'Network IP Range'`,`'Subnet Broadcast'`,`'Environment'`,`'Service/Purpose'`,`'AWS Account ID'`,`'Description'`,`'Contact Person'`,`'Ticket'`,`'VPN ID'`,`'VPC ID'`, `'Flow Log ID'`,`'Plan End Schedule'`,`'Tunnel ID'`,`'TGW Connection'`,`'Date of Creation'`) VALUES ('256',%s,%s,%s,%s,%s,'FREE','FREE','FREE','FREE','FREE','FREE','','','','','','','')"
-        cur.execute(query,(Region_Table_dict.get(region),str(inside_network),special_net.mask(),str(special_net),special_range,special_net.broadcast()))
-        conn.commit()
-    return(ip_octet,z,y)
+def db_connection(f):
+    """
+    DB Connection decorator
+    """
 
-def update_query(region,aws_info,tempInfo,values,second_net,mask,second_network,ip_range2,broad):
-    aws_info.update({"network": "%s" %second_net , "netmask": "%s" %mask, "cidr": "%s" %second_network,"IPrange": "%s" %ip_range2,"broadcastIP": "%s" %broad})
-    fields = aws_info.keys()
-    for val in aws_info.values():
-        tempInfo.append(val)
-    for key in aws_info.keys():
-        values.append(Field_Table_dict.get(key))
-    query = "INSERT INTO `'%s'` " %(Region_Table_dict.get(region))  
-    isFirstField = 1
-    for field in fields:
-            if isFirstField == 1:
-                query+= "(%s" %values[0]
-                isFirstField = 0
-                x = len(values)
-                i = 1
+    @wraps(f)
+    def decorator(*args, **kwargs):
+        rds_host = rds_config.db_host
+        name = rds_config.db_username
+        password = rds_config.db_password
+        db_name = rds_config.db_name
+
+        try:
+            conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
+            logger.info(f'Connected to {rds_host}')
+
+            rv = f(conn, *args, **kwargs)
+        except BaseException as e:
+            logger.info(f'Error Connecting to RDS! {e}')
+
+        else:
+            logger.info(f"Disconnected from {rds_host}")
+            conn.close()
+            return rv
+
+    return decorator
+
+
+def generate_search_space_ipv4(boundary_list, ip_need):
+    ## --- From Jaffer ----
+    #
+    # defensive programming
+    #
+
+    # 10.102.0.0/17 <-- Provided by Jaffer, 256 5/24= 10.102.0.0/24
+    # Breakdown IP depending on number of IP
+    assert boundary_list is not None, "Error: boundary_list cannot be None"
+
+    assert len(boundary_list) > 0, "Error: boundary_list cannot be empty list"
+
+    assert ip_need > 0, "Error: ip_need cannot less or equal than 0"
+
+    assert math.log(ip_need, 2) % 1 == 0, "Error: ip_need must be log(2) based integer"
+
+    #
+    # normal logic
+    #
+    logger.info("Generating search space...")
+    ip_need_mask = int(32 - math.log(ip_need, 2))
+
+    result = []
+
+    for b in boundary_list:
+
+        # start point
+        b_nw = ipaddress.IPv4Network(b)
+        nw = ipaddress.IPv4Network("%s/%d" % (b.split('/')[0], ip_need_mask))
+
+        while (nw.subnet_of(b_nw)):
+            # nw in boundary
+            result.append(nw)
+
+            # move for next sibling
+            nw = ipaddress.IPv4Network("%s/%d" % (str(nw.broadcast_address + 1), ip_need_mask))
+
+    return result
+
+
+@db_connection
+def read_all_used_ips(connection, table):
+    cursor = connection.cursor()
+    # Read all IPs in the database
+
+    logger.info("Reading all used address..")
+
+    sql_string = f"SELECT `'CIDR'` from `'{table}'` where `'AWS Account ID'` != 'FREE'"
+
+    cursor.execute(sql_string)
+
+    result = [ipaddress.IPv4Network(str(x[0])) for x in cursor.fetchall()]
+
+    return result
+
+
+# List, List
+# boundary_limitation_list = (256,256,256) [10.102.5.0/24]
+# used_ip_cidr = (1024,256) [10,102.0.0/22,10.102.4.0/24]
+def greedy_search(used_ip_cidr, boundary_limitation_list):
+    logger.info("Searching for available network.")
+    # Return first IP on the list when no records on database
+    if used_ip_cidr is None:
+        return boundary_limitation_list[0]
+
+    try:
+        while True:
+            # Pop the index [0]
+            # 10.102.0.0/24
+            cidr = boundary_limitation_list.pop(0)
+            overlapping_result = [cidr.overlaps(used_cidr) for used_cidr in used_ip_cidr]
+            if True in overlapping_result:
+                continue
             else:
-                while i < x:
-                    query+=",%s" %values[i]
-                    i+=1
-    query+=") VALUES ("   
-    for x in aws_info.values():
-        iterator = ""
-        query+="'%s'" %tempInfo[0]
-        iterator = 2
-        x = len(tempInfo)
-        i = 1
-        while i < x:
-            query+=",'%s'" %tempInfo[i]
-            i+=1
-        break
-    query+=")" 
-    with conn.cursor() as cur:
-        cur.execute(query)
-        conn.commit()
+                logger.info("Available network found.")
+                return cidr
+    except IndexError:
+        return None
+
+
+@db_connection
+def allocate_host(connection, table, fields):
+    cursor = connection.cursor()
+
+    # Prepare query
+    attributes = ",".join([f"`'{Field_Table_dict.get(x)}'`" for x in fields])
+    insert_query = f"INSERT INTO `'{table}'` ({attributes}) VALUES ({('%s,' * len(fields))[:-1]})"
+
+    cursor.execute(insert_query, tuple(fields.values()))
+    connection.commit()
+    return cursor.lastrowid
+
+
+def share_resource():
+    pass
+
+
+def add_comment(**fields):
+    options = {
+        "auth": ('heinrichb', 'qwe123QWE!@#'),  # TODO: Update this
+        "server": "https://dcstaskcentral.trendmicro.com/jira-stg"
+    }
+
+    jira = JIRA(**options)
+
+    issue = jira.issue(fields['ticket'])
+    reporter = issue.fields.reporter.key
+
+    comment_template = f""" 
+        Hi [~{reporter}],
+
+        Please see IP allocation details as below 
+        ||Network|| Netmask||CIDR||Number of IP's||Environment||Service/Purpose||AWS Account ID||Contact Person||Region ||
+        | | | | | | | | |
+        Here is the DCS Transit Gateway On-boarding SOP for your reference: https://cloudcntr.sdi.trendnet.org/x/kUx6B
+        NOTE: As checked  Transit Gateway Resource Sharing Invitation (Oregon) has been sent to your account:056623867196 and 414724894558.
+        Let us know if you need further support.
+
+        Thanks and regards,
+        AWS Central Admin    
+    """
+
+    jira.add_comment(issue, comment_template)
+
+    return fields['ticket']
+
 
 def lambda_handler(event, context):
-    pd = event
-    query,network = "",""
-    tempInfo,values = [],[]
-    complete = 0
-    for key in pd.keys():
-        region = key
-        parsed_ip = pd[region]['numIps']
-#PARSE REGION/NUM OF IPS FROM JSON AND COMPUTE FOR IP
-        if region in regions:
-            index_reg = regions.index(region)
-            ip_octet = ipx[index_reg]
-        else:
-            return('ERROR: Invalid Region')
-        if parsed_ip in hosts:
-            index = hosts.index(parsed_ip)
-            sub = subn[index]
-        else:
-            return('ERROR: Invalid Network')
-# SEE IF THERE IS A FREE NETWORK THAT CAN BE USED 
-        with conn.cursor() as cur:
-            free_checker = "SELECT * FROM `%s` WHERE `'Number of IPs'` = %s AND `'Environment'` = 'FREE' AND `'Description'` = 'FREE' ORDER BY `Row` DESC LIMIT 1"
-            cur.execute(free_checker,(Region_Table_dict.get(region),parsed_ip))
-            free_net = cur.fetchall()
-            if free_net == ():
-                print('No Free IP that can be used')
-# UPDATING THE LAST FIELD THAT IS FREE AND MATCHES CRITERIA             
-            else:
-                fields = pd[region].keys()
-                isFirstField = 1
-                query = "UPDATE `'%s'` " % (Region_Table_dict.get(region))
-                for field in fields:
-                    if isFirstField == 1:
-                        query += "SET %s='%s'" % (Field_Table_dict.get(field), pd[region][field])
-                        isFirstField = 0
-                    else:
-                        query += ", %s='%s'" % (Field_Table_dict.get(field), pd[region][field])
-                query += " WHERE Row = '%s'" % (free_net[0][0])
-                with conn.cursor() as cur:
-                    cur.execute(query)
-                    conn.commit()
-                complete = 1
-            if complete == 1:
-                return ('Done! Used free IP: See your IP in Row %s' %free_net[0][0])
-            else:
-#LAST BROADCAST FROM MYSQL
-                check_last = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1 "
-                cur.execute(check_last,(Region_Table_dict.get(region)))
-                conn.commit()
-                last_broadcast =  cur.fetchall()[0][6]
-# #SPLITTING IP TO CREATE FREE IPS DEPENDING ON THE LAST BROADCAST IP
-                data = last_broadcast.split('.')
-                if data[3] == '255':
-                    z = int(data[2]) + 1
-                    y = '0'
-#IF BROADCAST ADDRESS OF LAST ENDS IN 127 OR 63 OR 191         
-                elif data[3] == '127' or '63' or '191':
-#IF IT ENDS IN 127, IT WILL CREATE ANOTHER NETWORK WITH 128 HOSTS AND TAG IT AS FREE          
-                    if data [3] == '127':
-                        second_network = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s/25' %str(int(data[3]) + 1)
-                        second_net = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s' %str(int(data[3]) + 1)
-                        net2 = pyipcalc.IPNetwork(second_network)
-                        mask = str(net2.mask())
-                        broad = net2.broadcast()
-                        ip_range2 = net2.first() + ' to ' + net2.last()
-                        ip_set = 1
-# IF LAST BROADCAST[3] = 127 AND NEEDED IP = 128, ALLOCATE 128 IP
-                        if parsed_ip == '128':
-                            aws_info = pd[region]  
-                            with conn.cursor() as cur: 
-                                update_query(region,aws_info,tempInfo,values,second_net,mask,second_network,ip_range2,broad) 
-                                alloc = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1"
-                                cur.execute(alloc,(Region_Table_dict.get(region)))
-                                last_row = cur.fetchall()
-                                return ('Done! Please see your IP in Row %s' %last_row[0][0])
-# IF LAST BROADCAST[3] = 127 AND NEEDED IP = 64, ALLOCATE 64 IP
-                        elif parsed_ip == '64':
-                            second_network = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s/26' %str(int(data[3]) + 1)
-                            second_net = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s' %str(int(data[3]) + 1)
-                            net2 = pyipcalc.IPNetwork(second_network)
-                            mask = str(net2.mask())
-                            broad = net2.broadcast()
-                            ip_range2 = net2.first() + ' to ' + net2.last()
-                            aws_info = pd[region]
-                            update_query(region,aws_info,tempInfo,values,second_net,mask,second_network,ip_range2,broad)
-                            return ('Done! Please see your IP in Row %s' %return_last_row)
-                                # alloc = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1"
-                                # cur.execute(alloc,(Region_Table_dict.get(region)))
-                                # last_row = cur.fetchall()
+    aws_region = next(iter(event.keys()))  # ex. ap-northeast-1
 
-                    else:
-# BROADCAST IS EITHER 63 OR 191
-                        second_network = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s/26' %str(int(data[3]) + 1) 
-                        second_net = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s' %str(int(data[3]) + 1)
-                        net2 = pyipcalc.IPNetwork(second_network)
-                        ip_range2 = net2.first() + ' to ' + net2.last()
-                        ip_set = 2
-                        if parsed_ip == '128':
-                            with conn.cursor() as cur:
-                                queries = ['64','128']
-                                for x in queries:
-                                    if x == '64':
-                                        query1 = "INSERT INTO `%s` (`'Number of IPs'`,`'Network'`,`'Netmask'`,`'CIDR'`,`'Network IP Range'`,`'Subnet Broadcast'`,`'Environment'`,`'Service/Purpose'`,`'AWS Account ID'`,`'Description'`,`'Contact Person'`,`'Ticket'`) VALUES (%s,%s,%s,%s,%s,%s,'FREE','FREE','FREE','FREE','FREE','FREE')"         
-                                        cur.execute(query1,(Region_Table_dict.get(region),x,second_net,str(net2.mask()),second_network,ip_range2,net2.broadcast()))
-                                        conn.commit()
-                                    else:
-                                        check_last = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1 "
-                                        cur.execute(check_last,(Region_Table_dict.get(region)))
-                                        conn.commit()
-                                        last_broadcast =  cur.fetchall()[0][6]
-                                        data = last_broadcast.split('.')
-                                        if data[3] == '255':
-                                            second_network = data[0] + '.%s.' %data[1] + '%s.' %str(int(data[2]) + 1) + '0/25'
-                                            second_net = data[0] + '.%s.' %data[1] + '%s.' %str(int(data[2]) + 1) + '0'
-                                            net2 = pyipcalc.IPNetwork(second_network)
-                                            mask = str(net2.mask())
-                                            broad = net2.broadcast()
-                                            ip_range2 = net2.first() + ' to ' + net2.last()
-                                            aws_info = pd[region] 
-                                            with conn.cursor() as cur:
-                                                update_query(region,aws_info,tempInfo,values,second_net,mask,second_network,ip_range2,broad)
-                                                alloc = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1"
-                                                cur.execute(alloc,(Region_Table_dict.get(region)))
-                                                last_row = cur.fetchall()
-                                                return ('Done! Please see your IP in Row %s' %last_row[0][0])
-                                        else:
-                                            aws_info = pd[region]
-                                            with conn.cursor() as cur:
-                                                update_query(region,aws_info,tempInfo,values,second_net,mask,second_network,ip_range2,broad)
-                                                alloc = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1"
-                                                cur.execute(alloc,(Region_Table_dict.get(region)))
-                                                last_row = cur.fetchall()
-                                                return ('Done! Please see your IP in Row %s' %last_row[0][0])
-                                    second_network = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '128/25'
-                                    second_net = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '128'
-                                    net2 = pyipcalc.IPNetwork(second_network)
-                                    ip_range2 = net2.first() + ' to ' + net2.last()
-                        elif parsed_ip == '64':
-                            second_network = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s/26' %str(int(data[3]) + 1)
-                            second_net = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s' %str(int(data[3]) + 1)
-                            net2 = pyipcalc.IPNetwork(second_network)
-                            mask = str(net2.mask())
-                            broad = net2.broadcast()
-                            ip_range2 = net2.first() + ' to ' + net2.last()
-                            aws_info = pd[region]
-                            with conn.cursor() as cur:
-                                update_query(region,aws_info,tempInfo,values,second_net,mask,second_network,ip_range2,broad)
-                                alloc = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1"
-                                cur.execute(alloc,(Region_Table_dict.get(region)))
-                                last_row = cur.fetchall()
-                                return ('Done! Please see your IP in Row %s' %last_row[0][0])                   
-                    second_net = data[0] + '.%s.' %data[1] + '%s.' %data[2] + '%s' %str(int(data[3]) + 1)
-                    net2 = pyipcalc.IPNetwork(second_network)
-                    ip_range2 = net2.first() + ' to ' + net2.last()
-                    data2 = net2.broadcast().split('.')
-                    z = int(data[2]) + 1
-                    y = '0'
-                    if ip_set == 1:
-                        jot = '128'
-                    else:
-                        jot = '64'
-                    with conn.cursor() as cur:
-                        query1 = "INSERT INTO `%s` (`'Number of IPs'`,`'Network'`,`'Netmask'`,`'CIDR'`,`'Network IP Range'`,`'Subnet Broadcast'`,`'Environment'`,`'Service/Purpose'`,`'AWS Account ID'`,`'Description'`,`'Contact Person'`,`'Ticket'`) VALUES (%s,%s,%s,%s,%s,%s,'FREE','FREE','FREE','FREE','FREE','FREE')"         
-                        cur.execute(query1,(Region_Table_dict.get(region),jot,second_net,str(net2.mask()),second_network,ip_range2,net2.broadcast()))
-                        conn.commit()
-#IF IT ENDS IN 63, IT WILL CREATE 2 NETWORKS, 1 WITH 63 HOSTS AND 1 WITH 128 HOSTS ALL FREE
-                    if data2[3] == '127':
-                        third_network = data2[0] + '.%s.' %data2[1] + '%s.' %data2[2] + '%s/25' %str(int(data2[3]) + 1)
-                        third_net = data2[0] + '.%s.' %data2[1] + '%s.' %data2[2] + '%s' %str(int(data2[3]) + 1)
-                        net3 = pyipcalc.IPNetwork(third_network)
-                        ip_range3 = net3.first() + ' to ' + net3.last()
-                        with conn.cursor() as cur:
-                            query2 = "INSERT INTO `%s` (`'Number of IPs'`,`'Network'`,`'Netmask'`,`'CIDR'`,`'Network IP Range'`,`'Subnet Broadcast'`,`'Environment'`,`'Service/Purpose'`,`'AWS Account ID'`,`'Description'`,`'Contact Person'`,`'Ticket'`) VALUES ('128',%s,%s,%s,%s,%s,'FREE','FREE','FREE','FREE','FREE','FREE')"
-                            cur.execute(query2,(Region_Table_dict.get(region),third_net,net3.mask(),third_network,ip_range3,net3.broadcast()))
-                            conn.commit()
-#SPECIAL CONDITIONS IF IPS ARE 512, 1024 OR 2048. FOR 4096, HAVEN'T INCLUDED IT YET SINCE NO REQUEST YET FOR 4096 IS PRESENT
-                if parsed_ip == '512':
-                    if int(z) % 2 != 0:
-                        while int(z) % 2 != 0:
-                            ip_octet,z,y = special_alloc(region,ip_octet,z,y)
-                            z +=1
-                elif parsed_ip == '1024':
-                    if int(z) % 4 != 0:
-                        while int(z) % 4 != 0:
-                            ip_octet,z,y = special_alloc(region,ip_octet,z,y)
-                            z +=1
-                elif parsed_ip == '2048':
-                    if int(z) % 8 != 0:
-                        while int(z) % 8 != 0:
-                            ip_octet,z,y = special_alloc(region,ip_octet,z,y)
-                            z +=1
-                elif parsed_ip == '4096':
-                    if int(z) % 16 != 0:
-                        while int(z) % 16 != 0:
-                            ip_octet,z,y = special_alloc(region,ip_octet,z,y)
-                            z +=1
-                elif parsed_ip == '8192':
-                    if int(z) % 32 != 0:
-                        while int(z) % 32 != 0:
-                            ip_octet,z,y = special_alloc(region,ip_octet,z,y)
-                            z +=1
-#NEW IP SEGMENT TO BE USED FOR ASSIGNMENT 
-                new_network = '10.' + '%s.' %str(ip_octet) + '%s.'%z + '%s' %y
-                network = new_network + '/%s' %str(sub)
-                net = pyipcalc.IPNetwork(network)
-                broad = net.broadcast()
-                mask = net.mask()
-                ip_range = net.first() + ' to ' + net.last()
-#DONE AND READY TO UPDATE IN MYSQL
-                pd[region].update({"network": "%s" %new_network  , "netmask": "%s" %mask, "cidr": "%s" %net,"IPrange": "%s" %ip_range,"broadcastIP": "%s" %broad})
-                fields = pd[region].keys()
-                for val in pd[region].values():
-                    tempInfo.append(val)
-                for key in pd[region].keys():
-                    values.append(Field_Table_dict.get(key))
-                query = "INSERT INTO `'%s'` " %(Region_Table_dict.get(region))  
-                isFirstField = 1
-                for field in fields:
-                        if isFirstField == 1:
-                            query+= "(%s" %values[0]
-                            isFirstField = 0
-                            x = len(values)
-                            i = 1
-                        else:
-                            while i < x:
-                                query+=",%s" %values[i]
-                                i+=1
-                query+=") VALUES ("   
-                for x in pd[region].values():
-                    iterator = ""
-                    query+="'%s'" %tempInfo[0]
-                    iterator = 2
-                    x = len(tempInfo)
-                    i = 1
-                    while i < x:
-                        query+=",'%s'" %tempInfo[i]
-                        i+=1
-                    break
-                query+=")"   
-                with conn.cursor() as cur:
-                    cur.execute(query)
-                    conn.commit()
-                    alloc = "SELECT * FROM `%s` ORDER BY `Row` DESC LIMIT 1"
-                    cur.execute(alloc,(Region_Table_dict.get(region)))
-                    last_row = cur.fetchall()
-                    return ('Done! Please see your IP in Row %s' %last_row[0][0])
+    assert aws_region in REGIONS_MAPPING, "Error: Invalid region."
 
+    # Form data
+    region = REGIONS_MAPPING[aws_region]["table_name"]
+    number_of_IP = event[aws_region]['numIps']
+    fields = event[aws_region]  #
+
+    # 1a) Generate Search Space
+    # [10.102.0.0/24...]
+    search_space = generate_search_space_ipv4(REGIONS_MAPPING[aws_region]['network'], int(number_of_IP))
+
+    # 1b) Read all Used IP's
+    # From the DB
+    used_ip = read_all_used_ips(region)
+
+    available_cidr = greedy_search(used_ip, search_space)
+
+    if available_cidr:
+
+        hosts = list(available_cidr.hosts())  # 10.102.0.0/24 = [10.102.0.1.....10.102.0.254]
+
+        fields.update({
+            "network": str(available_cidr.network_address),
+            "netmask": str(available_cidr.netmask),
+            "cidr": str(available_cidr),
+            "IPrange": f"{str(hosts[0])} to {str(hosts[-1])}",
+            "broadcastIP": str(available_cidr.broadcast_address),
+        })
+
+        last_row_id = allocate_host(region, fields)
+
+        # TODO: Share Code
+
+        # TODO: refactor for multiple IP request on different region
+        # add_comment(fields, region)
+
+        return (f"Allocated {number_of_IP} number of hosts from  {available_cidr} in row {last_row_id}.")
+
+    else:
+
+        return ("Network is full. Please contact the administrators.")
 
 
