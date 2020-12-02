@@ -6,7 +6,7 @@
 * Environment is composed of modularized AWS service terraform scripts, for easier deployment and debugging.
 * Integrated into Jenkins as a CI/CD Pipeline to promote reusable deployment.
 
-# AWS Centralized Information
+# [AWS Centralized Information](https://github.com/keithbenedicto-personal/Portfolio/tree/main/AWS%20Centralized%20Information)
 * Developed a secured API which highlights the use of Python, Lambda, AWS API Gateway, RDS and S3 bucket to form a centralized repository of all AWS related information including internal IP allocation, account registration and pulling of information, AWS TGW connectivity, etc.
 * Created a Web Application which uses the API mentioned above for easier access to customer intended
 
