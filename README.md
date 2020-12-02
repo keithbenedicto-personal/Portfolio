@@ -1,16 +1,15 @@
-# Code / Scripts Portfolio
 
-# Horizon Online Channel Training Environment
+# [Horizon Online Channel Training Environment](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Horizon%20Online%20Channel%20Training%20Environment)
 
 * Developed and deployed a training environment through Terraform that conforms to the actual production setup used by Asurion platform.
 * Environment is composed of modularized AWS service terraform scripts, for easier deployment and debugging.
 * Integrated into Jenkins as a CI/CD Pipeline to promote reusable deployment.
 
-# AWS Centralized Information
+# [AWS Centralized Information](https://github.com/keithbenedicto-personal/Portfolio/tree/main/AWS%20Centralized%20Information)
 * Developed a secured API which highlights the use of Python, Lambda, AWS API Gateway, RDS and S3 bucket to form a centralized repository of all AWS related information including internal IP allocation, account registration and pulling of information, AWS TGW connectivity, etc.
 * Created a Web Application which uses the API mentioned above for easier access to customer intended
 
-# CCS Web Automation
+# [CCS Web Automation](https://github.com/keithbenedicto-personal/Portfolio/tree/main/CCS%20-%20Selenium)
 * Created automation via Python and Selnium for TrendMicro's CCS Application to replicate the user experience and provide a temporary auto healing mechanism to the application
 * Application usually crashes and a backend server reboot was signed as the temporary mitigation. This automation does the following
     1. Check and parse a healthcheck URL for the 3 backend servers present for the application
@@ -18,7 +17,7 @@
     3. Check for the service status on the machine and see if client connections commence in to the server
     4. Provide logging system to see the time the issue has happened and if the script encountered errors.
     
- # Jenkins Web Automation
+# [Jenkins Web Automation](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Jenkins%20-%20Selenium)
  * Created automation via Python and Selenium which mimics human intervention with servers by running a specific job based on the encountered issue
  * Application runs a set of the following functions below:
     1. Accept user input for the Provision Set (VM ID), Test script to use (AV or Backup) and the product type (OSCE,TMSM,etc.)
