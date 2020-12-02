@@ -18,7 +18,7 @@
     3. Check for the service status on the machine and see if client connections commence in to the server
     4. Provide logging system to see the time the issue has happened and if the script encountered errors.
     
- # [Jenkins Web Automation](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Jenkins%20-%20Selenium)
+# [Jenkins Web Automation](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Jenkins%20-%20Selenium)
  * Created automation via Python and Selenium which mimics human intervention with servers by running a specific job based on the encountered issue
  * Application runs a set of the following functions below:
     1. Accept user input for the Provision Set (VM ID), Test script to use (AV or Backup) and the product type (OSCE,TMSM,etc.)
