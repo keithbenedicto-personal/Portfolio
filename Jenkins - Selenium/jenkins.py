@@ -5,7 +5,7 @@ import time
 ps = input("Please input the provision set: ")
 sc = input("Please input the script type (av_test or backup): ")
 prod = input("Please input the product type (OSCE, TMSM, OSCE/TMSM or TMCM): ")
-user = 'keithb'
+user = ''
 password = ''
 driver = webdriver.Chrome("chromedriver.exe")
 driver.get("https://epas-jenkins.trendmicro.com:8080/login")
