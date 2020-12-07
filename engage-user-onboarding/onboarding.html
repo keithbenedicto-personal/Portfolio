@@ -263,9 +263,9 @@
 
     function sendRequest(postData){
       var xhr = new XMLHttpRequest();
-      var apiKey = "RXeXZ01LWP6uksOjr0qBF5FrOfmKb5L479ukRJB8"
+      var apiKey = ""
       xhr.overrideMimeType("application/json");
-      xhr.open("POST", 'https://sjsxbo25z0.execute-api.ap-northeast-2.amazonaws.com/prod/user-onboarding', true);
+      xhr.open("POST", '', true);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('x-api-key',apiKey);
       xhr.send(postData);
