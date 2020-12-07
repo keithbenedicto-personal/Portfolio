@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" type="text/css" href="css/nunito-font.css">
+  <link rel="stylesheet" href="css/style.css"/>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script> 
+  <script src="js/amazon-cognito-auth.min.js"></script>
+  <script src="https://sdk.amazonaws.com/js/aws-sdk-2.7.16.min.js"></script> 
+  <script src="js/amazon-cognito-identity.min.js"></script>  
+  <script src="js/config.js"></script>
+  <title>User-Engage-Onboarding</title>
+  <link rel="icon" href="images/asurionlogo.png" type="image/x-icon">
+
+</head>
+
+<body class="form-v6">
+  <div class="page-content">
+    <div class="form-v6-content">
+        <div class="form-left">
+            <img src="images/loginHand.png" style="margin-left:40px;"alt="form">
+            <img src="images/asurion.png" style="margin-left:100px;" alt="form">
+        </div>
+        <form class="form-detail" action="#" method="post">
+            <h2>Engage User Onboarding</h2>
+            <div class="form-group">
+                    <select class="form-control" id="Location" name="Location" onchange="regionChange(this.id,'RoleId','ClientId','SkillId')">
+                        <option selected="selected" value="">REGION</option>
+                        <option value="APAC">APAC</option>
+                        <option value="SKT">KOREA</option>
+                    </select>
+            </div>
+            <br>
+            <div class="form-row">
+                <input type="text" placeholder="Login ID" class="input-text" name="LoginID" id="LoginID" pattern=".*" required>
+            </div>
+            <div class="form-row">
+                <input type="text" placeholder="Name" class="input-text" name="Name" id="Name" pattern=".*" required>
+            </div>
+            <div class="form-row">
+                <input type="text" placeholder="Asurion Email" class="input-text" name="EmailAddress" id="EmailAddress" pattern=".*" required>
+            </div>
+            <div class="form-row">
+                <input type="text" placeholder="Manager's Email" name="ReportingAuthUserId" id="ReportingAuthUserId" pattern=".*" required>
+            </div>
+            <br>
+            <div class="form-group">
+                <select id="RoleId" name="RoleId" class="form-control" multiple>
+                    <option value="">ROLE ID</option>
+                </select>
+                <textarea style="display: none;" id="displayRole" readonly></textarea>
+            </div>
+            <div class="form-group">
+                <select id="SkillId" name="SkillId" class="form-control" multiple>
+                    <option value="">SKILL ID</option>
+                </select>
+                <textarea style="display: none;" id="displaySkill" readonly></textarea>
+            </div>
+            <div class="form-group">
+                <select id="ClientId" name="ClientId" class="form-control" multiple>
+                    <option value="">CLIENT ID</option>
+                </select>
+                <textarea style="display: none;" id="displayClient" readonly></textarea>
+            </div>
+            <div class="form-row-last">
+                <input id="mainbutton" type="button" name="add" class="register" value="SUBMIT" onclick="validate()">	&nbsp;&nbsp;
+                <input id="secondbutton" type="button" name="viewusers" class="register" value="VIEW USERS" onclick="viewUsers()">
+                <input id="thirdbutton" type="button" name="logout" class="logout" value="LOG OUT" onclick="signOut()">
+            </div>
+        </form>
+    </div>
+  </div>
+
+
+  <!--Record Creation-->
+  <script>
+    // Checking of session of user
+    let roleStr = ''
+    let skillStr = ''
+    let clientStr = ''
+    var data = { 
+        UserPoolId : _config.cognito.userPoolId,
+        ClientId : _config.cognito.clientId
+    };
+    var userPool = new AmazonCognitoIdentity.CognitoUserPool(data);
+    var cognitoUser = userPool.getCurrentUser();
+    window.onload = function(){
+    if (cognitoUser != null) {
+        cognitoUser.getSession(function(err, session) {
+            if (err) {
+                alert('You are not logged in!')
+                window.location = 'http://engage-user-onboarding.apac.prd.aws.asurion.net/loginpage.html'  
+                return;
+            }
+            console.log('session validity: ' + session.isValid());
+			      cognitoUser.getUserAttributes(function(err, result) {
+              if (err) {
+					      console.log(err);
+					      return;
+                }
+                console.log(result);
+                console.log("logged in")
+                document.getElementById("email_value").innerHTML = result[2].getValue();
+              });			
+            });
+          }
+    else {
+      alert('You are not logged in!')
+      window.location = 'http://engage-user-onboarding.apac.prd.aws.asurion.net/loginpage.html'  
+      return;
+    }
+        }
+
+    document.getElementById('RoleId').onchange = function(e) {
+            var displayRole = document.getElementById('displayRole');
+            displayRole.innerHTML = ''; 
+            getSelectedOptions(this, callbackRole);
+            roleStr = displayRole.innerHTML.slice(0, -2);
+            displayRole.innerHTML = roleStr;
+        };
+    document.getElementById('SkillId').onchange = function(e) {
+            var displaySkill = document.getElementById('displaySkill');
+            displaySkill.innerHTML = ''; 
+            getSelectedOptions(this, callbackSkill);
+            skillStr = displaySkill.innerHTML.slice(0, -2);
+            displaySkill.innerHTML = skillStr;
+        };
+    document.getElementById('ClientId').onchange = function(e) {
+            var displayClient = document.getElementById('displayClient');
+            displayClient.innerHTML = ''; 
+            getSelectedOptions(this, callbackClient);
+            clientStr = displayClient.innerHTML.slice(0, -2);
+            displayClient.innerHTML = clientStr;
+        };
+    function callbackRole(opt) {
+            var display = document.getElementById('displayRole');
+            display.innerHTML += opt.value + ', ';
+        }
+    function callbackSkill(opt) {
+            var display = document.getElementById('displaySkill');
+            display.innerHTML += opt.value + ', ';
+        }
+    function callbackClient(opt) {
+            var display = document.getElementById('displayClient');
+            display.innerHTML += opt.value + ', ';
+        }
+    
+    function getSelectedOptions(sel, fn) {
+        var opts = [], opt;
+        for (var i=0, len=sel.options.length; i<len; i++) {
+            opt = sel.options[i];
+            if ( opt.selected ) {
+                opts.push(opt);
+                if (fn) {
+                    fn(opt);
+                }
+            }
+        }
+    }
+    function signOut(){
+	    if (cognitoUser != null) {
+        cognitoUser.signOut();
+        console.log("logged out")
+		    window.location = 'http://engage-user-onboarding.apac.prd.aws.asurion.net/loginpage.html'  
+        }
+	  } 
+
+    function viewUsers(){
+	    if (cognitoUser != null) {
+        console.log("viewing users")
+		    window.location = 'http://engage-user-onboarding.apac.prd.aws.asurion.net/displayusers.html'  
+        }
+	  } 
+
+    function regionChange(region,role,client,skill) {
+      var region = document.getElementById(region);
+      var role = document.getElementById(role);
+      var skill = document.getElementById(skill);
+	    var client = document.getElementById(client);
+	    role.innerHTML = "";
+      skill.innerHTML = "";
+      client.innerHTML = "";
+      if(region.value == "APAC"){
+        var roleArray = ['{"RoleId": "1E9FC977C952008092D0C585C2E46D3C"}|DP EXPERT','{"RoleId": "1E9FC978B7890EB092D0C585C2E46D3C"}|DP MANAGER','{"RoleId": "1E9FC978617F08D092D0C585C2E46D3C"}|DP-TEAMLEAD','{"RoleId": "31342000000000000000000000000000"}|SOLUTO EXPERT','{"RoleId": "31343000000000000000000000000000"}|SOLUTO MANAGER','{"RoleId": "31341000000000000000000000000000"}|SOLUTO TEAMLEAD','{"RoleId": "A569E79F0B6111EAA8F20A86007B17AC"}|TLC ADMIN','{"RoleId": "1EA25614BBAA0500B84039C7B1974B0C"}|TLC USER','{"RoleId": "1EA25615936505D0B84039C7B1974B0C"}|TLC CARE'];
+        var skillArray= ['{"SkillId": "554CFB5DCE1A11E98A02029C52E0F0CE"}|SAMSUNG-DP-CHAT','{"SkillId": "553CFB5DCE1A11E98A02029C52E0F0CE"}|SINGTEL-DP-CHAT','{"SkillId": "1EAEB4C9F8D40960AB0B63341C37E5B0"}|SINGTEL-SOLUTO-CHAT','{"SkillId": "1EAFEFB1D1FE0F60A8F351BE5CD3D3D1"}|SINGTEL-SUR-CHAT','{"SkillId": "1EAFEF974989055091D513492C55270A"}|SIGNTEL-SUR-CHAT','{"SkillId": "555CFB5DCE1A11E98A02029C52E0F0CE"}|AIS-DP-CHAT','{"SkillId": "1EAE85CB4FA40FC0BF92F3EFD5E16A0A"}|AIS-SUR-CHAT','{"SkillId": "1EADBBCC433D0FD0B1EF57804FE9A89A"}|STARHUB-DP-CHAT','{"SkillId": "552CFB5DCE1A11E98A02029C52E0F0CE"}|STARHUB-SOLUTO-CHAT','{"SkillId": "1EABB4691E230F9081B6155DF54DC2FF"}|OPTUS-SOLUTO-KIOSK','{"SkillId": "1EAD166CAB2D0B508B71B9D3FDB2AEF3"}|CELCOM-DP-CHAT','{"SkillId": "1EB0F6618ADD0B60A9B3DDA017D909F5"}|CELCOM-SUR-CHAT','{"SkillId": "1EAA96EC04F203509DCF491DC7552208"}|TELSTRA-DP-CHAT','{"SkillId": "1EA261A8211502C0BF477506E5038384"}|M1-DP-CHAT','{"SkillId": "1EB087A383B103009E0CEBF27E6966C6"}|M1-SUR-CHAT','{"SkillId": "550CFB5DCE1A11E98A02029C52E0F0CE"}|SKT-CHAT'];
+        var clientArray= ['{"ClientId": "9C38AF74D41E11E7AA4B0A86007B17AC"}|M1','{"ClientId": "9B297AB4D41E11E7AA4B0A86007B17AC"}|AIS','{"ClientId": "66366264343134612D383838382D3131"}|SINGTEL','{"ClientId": "9C010754D41E11E7AA4B0A86007B17AC"}|CELCOM','{"ClientId": "6BD76BB2AA6011EAAA8F06C299A38754"}|OPTUS','{"ClientId": "9B5E2E27D41E11E7AA4B0A86007B17AC"}|TELSTRA'];
+	    } else if(region.value == "SKT"){
+        var roleArray = ['{"RoleId": "31342000000000000000000000000000"}|SOLUTO EXPERT','{"RoleId": "31341000000000000000000000000000"}|SOLUTO TEAMLEAD','{"RoleId": "31343000000000000000000000000000"}|SOLUTO MANAGER','{"RoleId": "1E9FC977C952008092D0C585C2E46D3C"}|DP EXPERT','{"RoleId": "1E9FC978B7890EB092D0C585C2E46D3C"}|DP MANAGER'];
+        var skillArray= ['{"SkillId": "552CFB5DCE1A11E98A02029C52E0F0CE"}|SKT-SOLUTO-CHAT','{"SkillId": "1EA4C8E452BD0930812E6122EB5EDA9E"}|SKT-DP-CHAT','{"SkillId": "1EAF717F5B170E20B170BB05249313B9"}|SKT-DP-VOICE','{"SkillId": "1EAF7175F9280DD0B170BB05249313B9"}|SKT-SOLUTO-VOICE'];
+        var clientArray= ['{"ClientId": "41F25E74D60911E9B0E50AB4DA7BD0B4"}|SKT'];
+      } else {
+        var roleArray = ["|ROLE ID"];
+        var skillArray= ["|SKILL ID"];
+        var clientArray= ["|CLIENT ID"];   
+      }
+      for(var roles in roleArray){
+        var rolePair = roleArray[roles].split("|");
+        var newRole = document.createElement("option");
+		    newRole.value = rolePair[0];
+        newRole.innerHTML = rolePair[1];
+        role.options.add(newRole);
+
+	    }
+	    for(var skills in skillArray){
+		    var skillPair = skillArray[skills].split("|");
+		    var newSkill = document.createElement("option");
+		    newSkill.value = skillPair[0];
+		    newSkill.innerHTML = skillPair[1];
+		    skill.options.add(newSkill);
+	    }
+      for(var clients in clientArray){
+		    var clientPair = clientArray[clients].split("|");
+		    var newClient = document.createElement("option");
+		    newClient.value = clientPair[0];
+		    newClient.innerHTML = clientPair[1];
+		    client.options.add(newClient);
+        }
+    }
+
+    function validate(){
+      // Required fields
+      var location = document.getElementById("Location").value;
+      var loginId = document.getElementById("LoginID").value;
+      var name = document.getElementById("Name").value;
+      var emailAddress = document.getElementById("EmailAddress").value;
+      var reportId = document.getElementById("ReportingAuthUserId").value;
+      var roleId = roleStr;
+      var skillId = skillStr;
+      var clientId = clientStr;
+
+      createRecord(location,loginId,name,emailAddress,reportId,roleId,skillId,clientId)
+      }
+
+    function createRecord(location,loginId,name,emailAddress,reportId,roleId,skillId,clientId){
+      var postData = '{ \
+        "Location": "'+location+'", \
+        "CreateUserRequest": { \
+          "LoginId": "'+loginId+'", \
+          "Name": "'+name+'", \
+          "CtiId": "TSS1347", \
+          "DialNumber": "1111", \
+          "EmailAddress": "'+emailAddress+'", \
+          "InsuranceCompany": "SS", \
+          "ReportingAuthUserId": "'+reportId+'", \
+          "Role": [ \
+            '+roleId+' \
+            ], \
+          "Skill": [ \
+            '+skillId+' \
+            ], \
+          "Client": [ \
+            '+clientId+' \
+            ] \
+          } \
+      }'
+      alert('Adding User...')
+      sendRequest(postData);
+    }
+
+    function sendRequest(postData){
+      var xhr = new XMLHttpRequest();
+      var apiKey = "RXeXZ01LWP6uksOjr0qBF5FrOfmKb5L479ukRJB8"
+      xhr.overrideMimeType("application/json");
+      xhr.open("POST", 'https://sjsxbo25z0.execute-api.ap-northeast-2.amazonaws.com/prod/user-onboarding', true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('x-api-key',apiKey);
+      xhr.send(postData);
+      xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == "200") {
+              alert(xhr.responseText);
+              alert('User has been successfully added!');
+            }
+       };
+    }
+
+  </script>
+
+  <!--Record Creation (END)-->
+
+</body>
+</html>
