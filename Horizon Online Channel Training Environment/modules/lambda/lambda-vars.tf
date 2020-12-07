@@ -1,0 +1,14 @@
+variable "api_sg_id" {}
+variable "aws_account_id" {}
+variable "aws_region" {}
+variable "description_default" {}
+variable "env" {}
+variable "iam_role" {}
+variable "lambda_iamrole_arn" {}
+variable "project_name" {}
+variable "tag_business_region" {}
+variable "tag_business_unit" {}
+variable "tag_client" {}
+variable "tag_platform" {}
+variable "tag_resource_created_by" {}
+variable "optus_lb_output" {}

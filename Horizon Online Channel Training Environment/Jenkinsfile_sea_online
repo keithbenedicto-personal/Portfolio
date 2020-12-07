@@ -1,0 +1,110 @@
+#!groovy
+
+// Assume IAM Role for AWS actions:
+def AssumeRole(roleId, accountId) {
+	def credsJSON = sh script: "aws sts assume-role --duration-seconds 1800 --role-session-name ${roleId} --role-arn arn:aws:iam::${accountId}:role/${roleId} --output json", returnStdout: true
+	def creds = readJSON text: credsJSON
+	env.AWS_ACCESS_KEY_ID = creds.Credentials.AccessKeyId
+	env.AWS_SECRET_ACCESS_KEY = creds.Credentials.SecretAccessKey
+	env.AWS_SESSION_TOKEN = creds.Credentials.SessionToken
+	env.AWS_SECURITY_TOKEN = creds.Credentials.SessionToken
+}
+
+switch(DEPLOY_ENV){
+    case "dev":
+        awsAccountId = ''
+        stateBucket = 'sea-horizon-online-tf'
+        break
+    case "sqa":
+        awsAccountId = ''
+        stateBucket = 'sea-horizon-online-tf'
+        break
+    default:
+        break
+}
+
+pipeline {
+    agent {
+        label "Shared-Large-Online"
+    }
+    environment {
+        DOCKER_IMAGE = 'hashicorp/terraform:0.11.14'
+        //DOCKER_IMAGE = 'hashicorp/terraform:0.12.26'
+        DOCKER_CMD = "docker run --network host -w /env -v \${HOME}/.aws:/root.aws -v \${HOME}/.ssh:/root.ssh -v `pwd`/modules:/modules -v `pwd`/env:/env ${DOCKER_IMAGE}"
+        WORKSPACE_NAME = "${DEPLOY_ENV}_sea"
+        REGION_NAME = 'ap-northeast-1'
+        TFSTATE_NAME = 'terraform-hzn-ol.tfstate'
+        TFVARS_NAME = "terraform-hzn-ol-${DEPLOY_ENV}.tfvars"
+        ROLE_NAME = 'consoleone-iac-npr'
+        BACKEND_CONFIG = ""
+        TF_ARGS = ""
+    }
+    stages {
+        stage("Assume Role") {
+            steps {
+                script {
+                    try {
+                        println("Assuming task role for desired aws profile...")
+                        env.AWS_ACCESS_KEY_ID = ""
+                        env.AWS_SECRET_ACCESS_KEY =  ""
+                        env.AWS_SESSION_TOKEN = ""
+                        env.AWS_SECURITY_TOKEN = ""
+                        AssumeRole("${ROLE_NAME}","${awsAccountId}")
+                    }
+                    catch (err) {
+                        currentBuild.result = "FAILURE"
+                        println('Cleaning up workspace...')
+                        cleanWs deleteDirs: true
+                        throw err
+                    }
+                }
+            }
+        }
+        stage('Init'){
+            steps{
+                script{
+                    currentBuild.displayName = "#${BUILD_NUMBER}-${DEPLOY_ENV}-${TERRAFORM_ACTION}"
+                    BACKEND_CONFIG = "-backend-config=\"bucket=${stateBucket}\" -backend-config=\"role_arn=arn:aws:iam::${awsAccountId}:role/${ROLE_NAME}\" -backend-config=\"region=${REGION_NAME}\"  -backend-config=\"key=${TFSTATE_NAME}\""
+                }
+            }
+        }
+        stage('Run Terraform'){
+            steps {
+                script {
+                    println("Verify working directory...")
+                    sh "pwd"
+                    println("Verify contents of directory...")
+                    sh "ls -la"
+                    //dir ('terraform') {
+                        sh "${DOCKER_CMD} init ${BACKEND_CONFIG}"
+                        sh "${DOCKER_CMD} workspace new ${WORKSPACE_NAME} || ${DOCKER_CMD} workspace select ${WORKSPACE_NAME}"
+
+                        // Test - for checking contents of the workspace
+                        println("Confirm current location...")
+                        sh "pwd"
+                        println("Confirm current contents...")
+                        sh "ls -la"
+                        println("Check env folder contents...")
+                        sh "ls env -la"
+                        println("Check modules folder contents...")
+                        sh "ls modules -la"
+
+                        if("${TERRAFORM_ACTION}" == "apply"){
+                            TF_ARGS = "-auto-approve -no-color -var-file=\"${TFVARS_NAME}\""
+                        }else if("${TERRAFORM_ACTION}" == "destroy"){
+                            TF_ARGS = "-auto-approve -no-color -var-file=\"${TFVARS_NAME}\""
+                        }else{
+                            TF_ARGS = "-no-color -var-file=\"${TFVARS_NAME}\""                          
+                        }
+                        sh "${DOCKER_CMD} ${TERRAFORM_ACTION} ${TF_ARGS}"
+                    //}
+                }
+            }
+        }
+    }
+    post {
+        cleanup {
+            cleanWs deleteDirs: true
+        }
+    }
+}
