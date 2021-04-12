@@ -10,7 +10,7 @@
 * Created a Web Application which uses the API mentioned above for easier access to customer intended
 
 # [CCS Web Automation](https://github.com/keithbenedicto-personal/Portfolio/tree/main/CCS%20-%20Selenium)
-* Created automation via Python and Selnium for TrendMicro's CCS Application to replicate the user experience and provide a temporary auto healing mechanism to the application
+* Created automation via Python and Selenium for TrendMicro's CCS Application to replicate the user experience and provide a temporary auto healing mechanism to the application
 * Application usually crashes and a backend server reboot was signed as the temporary mitigation. This automation does the following
     1. Check and parse a healthcheck URL for the 3 backend servers present for the application
     2. Get the longest running machine and restart the application it via ssh library (paramiko)
