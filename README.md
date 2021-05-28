@@ -1,4 +1,11 @@
 
+# [Horizon Engage User Onboarding](https://github.com/keithbenedicto-personal/Portfolio/tree/main/engage-user-onboarding)
+
+* Created and architected a fully AWS Managed Web Application that conforms with security and needs of Asurion Dev Team
+* Developed the application from the API, with python as its backend language for lambda up to the front-end using HTML and Javascript
+* Uses different AWS services such as Cognito for user login, DynamoDB for logging, S3 bucket for static data and EC2 instance as its host
+* Product is now in use for production and serves as a critical application tool for day to day tasks
+
 # [Horizon Online Channel Training Environment](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Horizon%20Online%20Channel%20Training%20Environment)
 
 * Developed and deployed a training environment through Terraform that conforms to the actual production setup used by Asurion platform.
