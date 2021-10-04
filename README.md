@@ -23,7 +23,15 @@
     2. Get the longest running machine and restart the application it via ssh library (paramiko)
     3. Check for the service status on the machine and see if client connections commence in to the server
     4. Provide logging system to see the time the issue has happened and if the script encountered errors.
-    
+
+# CCS Infrastructure Self-healing mechanism
+* Created automation via Bash Script and third party tool OpsGenie to provide alert monitoring and self-healing to avoid business impairing incidents
+    1. Integrated AWS Cloudwatch to OpsGenie to provide realtime monitoring to CCS infrastructure
+    2. Provided alert level based troubleshooting scripts which will automatically run in case of an issue
+        * Check concurrent connections for each web server
+        * Check the longest-running web server and the one that caters most of the traffic
+        * Restart IIS Service for a specific faulty server
+        * Provide alert to respective on-call Engineer regarding the proposed step to be taken for validation 
 # [Jenkins Web Automation](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Jenkins%20-%20Selenium)
  * Created automation via Python and Selenium which mimics human intervention with servers by running a specific job based on the encountered issue
  * Application runs a set of the following functions below:
@@ -42,6 +50,7 @@
 * Collaborated with Development Team in making sure that the application is working and compliant to all of Asurion’s protocols from all of the lower environments until product’s general availability.
 * Supported product launch and handled relevant issues that concerns the service’s architecture.
 * Proprietary, code and scripts cannot be disclosed.
+
 
 
       
