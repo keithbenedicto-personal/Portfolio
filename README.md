@@ -24,7 +24,7 @@
     3. Check for the service status on the machine and see if client connections commence in to the server
     4. Provide logging system to see the time the issue has happened and if the script encountered errors.
 
-# CCS Infrastructure Self-healing mechanism
+# CCS Infrastructure Self-healing Mechanism
 * Created automation via Bash Script and third party tool OpsGenie to provide alert monitoring and self-healing to avoid business impairing incidents
     1. Integrated AWS Cloudwatch to OpsGenie to provide realtime monitoring to CCS infrastructure
     2. Provided alert level based troubleshooting scripts which will automatically run in case of an issue
