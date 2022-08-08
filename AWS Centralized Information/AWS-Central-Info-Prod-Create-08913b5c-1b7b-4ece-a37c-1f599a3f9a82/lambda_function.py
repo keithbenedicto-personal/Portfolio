@@ -201,8 +201,8 @@ def share_resource():
 
 def add_comment(**fields):
     options = {
-        "auth": ('heinrichb', 'qwe123QWE!@#'),  # TODO: Update this
-        "server": "https://dcstaskcentral.trendmicro.com/jira-stg"
+        "auth": ('username', 'password'),  # TODO: Update this
+        "server": "login_link"
     }
 
     jira = JIRA(**options)
@@ -216,8 +216,8 @@ def add_comment(**fields):
         Please see IP allocation details as below 
         ||Network|| Netmask||CIDR||Number of IP's||Environment||Service/Purpose||AWS Account ID||Contact Person||Region ||
         | | | | | | | | |
-        Here is the DCS Transit Gateway On-boarding SOP for your reference: https://cloudcntr.sdi.trendnet.org/x/kUx6B
-        NOTE: As checked  Transit Gateway Resource Sharing Invitation (Oregon) has been sent to your account:056623867196 and 414724894558.
+        Here is the DCS Transit Gateway On-boarding SOP for your reference: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        NOTE: As checked  Transit Gateway Resource Sharing Invitation (Oregon) has been sent to your account:xxxxxxxxxx and xxxxxxxxx.
         Let us know if you need further support.
 
         Thanks and regards,
