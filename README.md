@@ -1,4 +1,8 @@
-# [NGINX Reverse Proxy Ingress Project](https://github.com/keithbenedicto-personal/Portfolio/tree/main/engage-user-onboarding)
+# [NGINX Reverse Proxy Service Project](https://github.com/keithbenedicto-personal/Portfolio/tree/main/engage-user-onboarding)
+
+* Planned, architected and deployed on-top NGINX infrastructure that acts as a reverse proxy service for our fully containerized application hosted through Amazon Kubernetes Service
+* This acted as the solution for our infrastructure issue involving insufficiency on number of ports of on our current setup that utilizes elastic load balancers and network load balancers
+* Fully reusable infrastructure code written using the combination of python, shell and CloudFormation for easier deployment, integrated in Gitlab CI for continuous deployment
 
 # [Horizon Engage User Onboarding](https://github.com/keithbenedicto-personal/Portfolio/tree/main/engage-user-onboarding)
 
