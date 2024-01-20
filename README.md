@@ -1,6 +1,6 @@
 # [NGINX Reverse Proxy Service Refactoring](https://github.com/keithbenedicto-personal/Portfolio/tree/main/NGINX%20Reverse%20Proxy)
 
-* Planned, architected and deployed on-top NGINX infrastructure that acts as a reverse proxy service for our fully containerized application hosted through Amazon Kubernetes Service
+* Planned, architected and deployed on-top NGINX infrastructure that acts as a reverse proxy service for our fully containerized application and hosted through Amazon Kubernetes Service
 * This acted as the solution for our infrastructure issue involving insufficiency on number of ports of on our current setup that utilizes elastic load balancers and network load balancers
 * This also handles the BLUE / GREEN deployment of the clusters during maintenances, ensuring that all of the clusters are up to date and security patched accordingly
 * Fully reusable infrastructure code written using the combination of python, shell and CloudFormation for easier deployment, integrated in Gitlab CI for continuous deployment
