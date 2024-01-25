@@ -1,21 +1,23 @@
 # [NGINX Reverse Proxy Service Refactoring](https://github.com/keithbenedicto-personal/Portfolio/tree/main/NGINX%20Reverse%20Proxy)
 
-* Planned, architected and deployed on-top NGINX infrastructure that acts as a reverse proxy service for our fully containerized application and hosted through Amazon Kubernetes Service
+* Planned, architected and deployed on-top NGINX infrastructure that acts as a reverse proxy service for our fully containerized application and orchestrated through Amazon Elastic Kubernetes Service
 * This acted as the solution for our infrastructure issue involving insufficiency on number of ports of on our current setup that utilizes elastic load balancers and network load balancers
 * This also handles the BLUE / GREEN deployment of the clusters during maintenances, ensuring that all of the clusters are up to date and security patched accordingly
-* Fully reusable infrastructure code written using the combination of python, shell and CloudFormation for easier deployment, integrated in Gitlab CI for continuous deployment
+* Fully reusable infrastructure code written using the combination of python, shell and CloudFormation for easier deployment, integrated in Gitlab CI and repository for continuous deployment
 
 # [Horizon Engage User Onboarding](https://github.com/keithbenedicto-personal/Portfolio/tree/main/engage-user-onboarding)
 
 * Created and architected a fully AWS Managed Web Application that conforms with security and needs of Asurion Dev Team
 * Developed the application from the API, with python as its backend language for lambda up to the front-end using HTML and Javascript
 * Uses different AWS services such as Cognito for user login, DynamoDB for logging, S3 bucket for static data and EC2 instance as its host
+* Code and infrastructure were deployed through Jenkins Pipelines stored in Bitbucket as its repository
 * Product is now in use for production and serves as a critical application tool for day to day tasks
 
 # [Horizon Online Channel Training Environment](https://github.com/keithbenedicto-personal/Portfolio/tree/main/Horizon%20Online%20Channel%20Training%20Environment)
 
 * Developed and deployed a training environment through Terraform that conforms to the actual production setup used by Asurion platform.
 * Environment is composed of modularized AWS service terraform scripts, for easier deployment and debugging.
+* This has become the main solution for refactoring the IAC environment, from using ansible to a more flexible platform, Terraform
 * Integrated into Jenkins as a CI/CD Pipeline to promote reusable deployment.
 
 # [AWS Centralized Information](https://github.com/keithbenedicto-personal/Portfolio/tree/main/AWS%20Centralized%20Information)
